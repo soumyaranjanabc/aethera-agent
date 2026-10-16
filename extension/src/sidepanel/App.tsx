@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { CSSProperties } from "react";
-import type { Action, ActionResult } from "../shared/types";
+import type { Action, ActionResult, PreviewResult } from "../shared/types";
 
 const SAMPLE: Action = { type: "CLICK", x: 200, y: 200 };
 
@@ -14,6 +14,8 @@ const btn: CSSProperties = {
 export function App() {
   const [json, setJson] = useState(JSON.stringify(SAMPLE, null, 2));
   const [log, setLog] = useState<string[]>([]);
+  const [preview, setPreview] = useState<PreviewResult | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const push = (line: string) =>
     setLog((l) => [`${new Date().toLocaleTimeString()}  ${line}`, ...l].slice(0, 50));
@@ -35,10 +37,50 @@ export function App() {
     push(`${action.type} -> ${res.ok ? "OK" : "FAIL"} ${res.detail}`);
   };
 
+  const runPreview = async () => {
+    setBusy(true);
+    try {
+      const res: PreviewResult = await chrome.runtime.sendMessage({ type: "GET_SANITIZED_PREVIEW" });
+      setPreview(res);
+      push(`PREVIEW -> ${res.ok ? "OK" : "FAIL"} ${res.detail}`);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const snap = preview?.snapshot;
+
   return (
     <div style={{ padding: 12 }}>
-      <h3 style={{ margin: "0 0 12px" }}>🛰️ Aethera AI · Action Console</h3>
+      <h3 style={{ margin: "0 0 12px" }}>🛰️ Aethera AI · Console</h3>
 
+      {/* ---------- Phase 2: sanitized preview ---------- */}
+      <div style={box}>
+        <div style={{ marginBottom: 6 }}>Privacy: Sanitized Preview</div>
+        <button style={btn} onClick={runPreview} disabled={busy}>
+          {busy ? "Working..." : "Preview sanitized view"}
+        </button>
+
+        {preview && !preview.ok && <div style={{ color: "#ff7b72", marginTop: 8 }}>{preview.detail}</div>}
+
+        {preview?.ok && preview.imageDataUrl && snap && (
+          <div style={{ marginTop: 10 }}>
+            <img src={preview.imageDataUrl} alt="redacted view" style={{ width: "100%", border: "1px solid #234", borderRadius: 4 }} />
+            <div style={{ fontSize: 12, marginTop: 6 }}>
+              nodes: {snap.stats.nodes} · PII spans: {snap.stats.redactedSpans} · masked regions: {snap.stats.maskedRegions}
+            </div>
+            <div style={{ fontSize: 12 }}>by type: {JSON.stringify(snap.stats.byType)}</div>
+            <details style={{ marginTop: 6 }}>
+              <summary style={{ cursor: "pointer" }}>Sanitized layout JSON (first 15 nodes)</summary>
+              <pre style={{ fontSize: 11, whiteSpace: "pre-wrap", maxHeight: 220, overflow: "auto" }}>
+                {JSON.stringify(snap.nodes.slice(0, 15), null, 1)}
+              </pre>
+            </details>
+          </div>
+        )}
+      </div>
+
+      {/* ---------- Phase 1: action console ---------- */}
       <div style={box}>
         <button style={btn} onClick={ping}>Ping active tab</button>
       </div>

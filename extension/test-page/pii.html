@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aethera PII Test Page</title>
+  <style>
+    body { font-family: system-ui; margin: 0; padding: 16px; line-height: 1.5; }
+    .row { margin: 6px 0; }
+    input { padding: 6px; width: 260px; }
+    canvas { border: 1px solid #888; display: block; margin: 8px 0; }
+    iframe { width: 320px; height: 60px; border: 1px solid #888; }
+  </style>
+</head>
+<body>
+  <h2>Aethera PII Test Page (fake data)</h2>
+
+  <div class="row">Email: <b>ravi.kumar@isro.gov.in</b></div>
+  <div class="row">Phone: <b>+91 98765 43210</b></div>
+  <div class="row">PAN: <b>ABCPE1234F</b></div>
+  <div class="row">Aadhaar: <b id="aad">...</b></div>
+  <div class="row">Card: <b>4111 1111 1111 1111</b></div>
+  <div class="row">Launch pad: <b>13.7199°N 80.2304°E</b></div>
+  <div class="row">Operator: <b>Dr. Anil Sharma</b></div>
+  <div class="row">Token: <b>password: Sup3rS3cret!</b></div>
+  <div class="row">Clean text: Satellite pass over Sriharikota in 12 minutes. Voltage 28.5 V.</div>
+
+  <div class="row">Password: <input type="password" value="hunter2" /></div>
+  <div class="row">Full name (typed): <input type="text" value="Anil Kumar" /></div>
+  <div class="row">Search: <input type="text" placeholder="Search telemetry" /></div>
+  <div class="row"><button>Export log</button></div>
+
+  <div class="row" data-aethera-redact>Classified note: orbit plan v7 (opt-in redaction)</div>
+
+  <div class="row"><my-card></my-card></div>
+
+  <canvas id="cv" width="300" height="60"></canvas>
+  <iframe srcdoc="<p>Cross-frame secret: 9876543210</p>"></iframe>
+
+  <script>
+    // Generate a Verhoeff-valid Aadhaar at runtime
+    const D=[[0,1,2,3,4,5,6,7,8,9],[1,2,3,4,0,6,7,8,9,5],[2,3,4,0,1,7,8,9,5,6],[3,4,0,1,2,8,9,5,6,7],[4,0,1,2,3,9,5,6,7,8],[5,9,8,7,6,0,4,3,2,1],[6,5,9,8,7,1,0,4,3,2],[7,6,5,9,8,2,1,0,4,3],[8,7,6,5,9,3,2,1,0,4],[9,8,7,6,5,4,3,2,1,0]];
+    const P=[[0,1,2,3,4,5,6,7,8,9],[1,5,7,6,2,8,3,0,9,4],[5,8,0,3,7,9,6,1,4,2],[8,9,1,6,0,4,3,5,2,7],[9,4,5,3,1,2,6,8,7,0],[4,2,8,6,5,7,3,9,0,1],[2,7,9,3,8,0,6,4,1,5],[7,0,4,6,9,1,3,2,5,8]];
+    const INV=[0,4,3,2,1,5,6,7,8,9];
+    function check(p){let c=0;[...p].reverse().forEach((d,i)=>{c=D[c][P[(i+1)%8][+d]]});return INV[c]}
+    const base="23456789012", a=base+check(base);
+    document.getElementById("aad").textContent=`${a.slice(0,4)} ${a.slice(4,8)} ${a.slice(8)}`;
+
+    // Canvas "dashboard" text (pixels, not DOM)
+    const ctx=document.getElementById("cv").getContext("2d");
+    ctx.fillStyle="#012"; ctx.fillRect(0,0,300,60);
+    ctx.fillStyle="#0f8"; ctx.font="16px monospace";
+    ctx.fillText("LAT 13.7199  LON 80.2304",10,35);
+
+    // Shadow DOM widget
+    class MyCard extends HTMLElement {
+      constructor(){ super();
+        this.attachShadow({mode:"open"}).innerHTML =
+          `<div style="border:1px solid #888;padding:8px">Shadow contact: <b>s.nair@vssc.gov.in</b>, <b>+91 98123 45678</b></div>`;
+      }
+    }
+    customElements.define("my-card", MyCard);
+  </script>
+</body>
+</html>
