@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Aethera Test Page</title>
+  <style>
+    body { font-family: system-ui; margin: 0; padding: 20px; height: 2500px; }
+    .row { margin: 20px 0; }
+    #coords { position: fixed; top: 6px; right: 10px; background: #000; color: #0f0; padding: 4px 8px; font-family: monospace; z-index: 99; }
+    #status { margin-top: 10px; font-weight: bold; color: #0a7; }
+  </style>
+</head>
+<body>
+  <div id="coords">x: -, y: -</div>
+  <h2>Aethera Action Test Page</h2>
+  <p>Hover to read coordinates (top-right), then use them in the side panel.</p>
+
+  <div class="row"><button id="btn" style="padding:14px 24px">Normal Button</button></div>
+  <div class="row"><input id="inp" placeholder="Normal input" style="padding:10px;width:300px" /></div>
+  <div class="row"><div id="ce" contenteditable="true" style="border:1px solid #888;padding:10px;width:300px">Editable: </div></div>
+  <div class="row"><my-widget></my-widget></div>
+  <div id="status">Status: idle</div>
+
+  <script>
+    const status = document.getElementById("status");
+    document.addEventListener("mousemove", (e) => {
+      document.getElementById("coords").textContent = `x: ${e.clientX}, y: ${e.clientY}`;
+    });
+    document.getElementById("btn").addEventListener("click", () => (status.textContent = "Status: normal button clicked ✅"));
+    document.getElementById("inp").addEventListener("input", (e) => (status.textContent = "Status: input = " + e.target.value));
+
+    // Shadow DOM widget (open)
+    class MyWidget extends HTMLElement {
+      constructor() {
+        super();
+        const root = this.attachShadow({ mode: "open" });
+        root.innerHTML = `
+          <button id="sb" style="padding:14px 24px;background:#333;color:#fff">Shadow Button</button>
+          <input id="si" placeholder="Shadow input" style="padding:10px;width:240px" />`;
+        root.getElementById("sb").addEventListener("click", () => (status.textContent = "Status: SHADOW button clicked ✅"));
+        root.getElementById("si").addEventListener("input", (e) => (status.textContent = "Status: shadow input = " + e.target.value));
+      }
+    }
+    customElements.define("my-widget", MyWidget);
+  </script>
+</body>
+</html>

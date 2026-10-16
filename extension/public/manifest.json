@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Aethera AI Privacy-First Browser Agent",
+  "version": "0.1.0",
+  "description": "On-device visual perception and PII redaction for light-weight browser agents.",
+  "minimum_chrome_version": "114",
+  "permissions": ["sidePanel", "activeTab", "tabs", "scripting", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  },
+  "action": {
+    "default_title": "Open Aethera AI"
+  }
+}
