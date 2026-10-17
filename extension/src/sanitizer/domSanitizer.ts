@@ -151,6 +151,18 @@ function labelContext(node: Text): string {
   }
   return prev && prev.nodeType === 3 ? (prev.nodeValue ?? "").slice(-40) : "";
 }
+/** Table columns whose cells hold person names (a regex can't recognise a bare "Priya Menon"). */
+const NAME_COLUMN =
+  /^(?:full\s*)?name$|^(?:operator|officer|engineer|scientist|contact(?:\s*person)?|user(?:name)?|assigned\s*to|acknowledged\s*by|duty\s*officer)$/i;
+
+function columnImpliesName(parent: Element | null): boolean {
+  const cell = parent?.closest("td");
+  const table = cell?.closest("table");
+  if (!cell || !table) return false;
+  const header = table.rows[0]?.cells[cell.cellIndex];
+  if (!header || header === cell) return false;
+  return NAME_COLUMN.test((header.textContent ?? "").replace(/\s+/g, " ").trim());
+}
 
 function handleText(node: Text, ctx: Ctx) {
   const raw = node.nodeValue ?? "";
@@ -158,7 +170,7 @@ function handleText(node: Text, ctx: Ctx) {
   const parent = node.parentElement;
   if (parent && SKIP_TAGS.has(parent.tagName.toUpperCase())) return;
   const prefix = labelContext(node);
-  const matches = detectPII(prefix + raw)
+  let matches: PIIMatch[] = detectPII(prefix + raw)
     .filter((m) => m.end > prefix.length)
     .map((m) => ({
       ...m,
@@ -166,6 +178,9 @@ function handleText(node: Text, ctx: Ctx) {
       end: Math.min(raw.length, m.end - prefix.length),
     }))
     .filter((m) => m.end > m.start);
+  if (columnImpliesName(parent)) {
+    matches = [{ type: "NAME", start: 0, end: raw.length, confidence: 0.7 }];
+  }
   if (matches.length) {
     bump(ctx, matches);
     for (const m of matches) {
@@ -260,7 +275,8 @@ function handleElement(el: Element, ctx: Ctx): "descend" | "skip" {
 
     if (visible) {
       if (shouldMask) addMask(ctx, rect);
-      const label = el.getAttribute("aria-label") || el.getAttribute("placeholder") || el.getAttribute("title") || "";
+      const assoc = (el as HTMLInputElement).labels?.[0]?.textContent ?? "";
+      const label = el.getAttribute("aria-label") || assoc || el.getAttribute("placeholder") || el.getAttribute("title") || "";
       addNode(ctx, {
         tag: tag.toLowerCase(),
         role: el.getAttribute("role") ?? (tag === "SELECT" ? "select" : "textbox"),

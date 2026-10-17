@@ -1,5 +1,5 @@
 import type { Action, ActionResult } from "../shared/types";
-
+import { resolveTarget } from "./targetResolver";
 /**
  * Resolves the element at a viewport point, descending into open shadow roots.
  * (document.elementFromPoint stops at the shadow host.)
@@ -104,6 +104,26 @@ function doPress(key: string): ActionResult {
   }
   return { ok: true, detail: `Pressed key "${key}"` };
 }
+function doTypeInto(target: string, text: string, clear = false): ActionResult {
+  const hit = resolveTarget(target, "input");
+  if (!hit) return { ok: false, detail: `No visible input matching "${target}"` };
+  if (clear) {
+    const el = deepElementFromPoint(hit.x, hit.y);
+    if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) {
+      setNativeValue(el, "");
+      el.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+    }
+  }
+  const res = doType(text, hit.x, hit.y);
+  return { ok: res.ok, detail: `Found "${hit.label}" at (${hit.x}, ${hit.y}). ${res.detail}` };
+}
+
+function doClickTarget(target: string): ActionResult {
+  const hit = resolveTarget(target, "clickable");
+  if (!hit) return { ok: false, detail: `No visible button/link matching "${target}"` };
+  const res = doClick(hit.x, hit.y);
+  return { ok: res.ok, detail: `Found "${hit.label}" at (${hit.x}, ${hit.y}). ${res.detail}` };
+}
 
 export function executeAction(action: Action): ActionResult {
   try {
@@ -116,6 +136,10 @@ export function executeAction(action: Action): ActionResult {
         return doScroll(action.dy, action.dx);
       case "PRESS":
         return doPress(action.key);
+      case "TYPE_INTO":
+        return doTypeInto(action.target, action.text, action.clear);
+      case "CLICK_TARGET":
+        return doClickTarget(action.target);
       default:
         return { ok: false, detail: `Unknown action: ${JSON.stringify(action)}` };
     }

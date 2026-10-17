@@ -13,7 +13,19 @@ export type ScrollAction = { type: "SCROLL"; dy: number; dx?: number };
 
 export type PressAction = { type: "PRESS"; key: string };
 
-export type Action = ClickAction | TypeAction | ScrollAction | PressAction;
+/** Find an input by its label/placeholder, then type into it. */
+export type TypeIntoAction = { type: "TYPE_INTO"; target: string; text: string; clear?: boolean };
+
+/** Find a button/link/tab by its visible label, then click it. */
+export type ClickTargetAction = { type: "CLICK_TARGET"; target: string };
+
+export type Action =
+  | ClickAction
+  | TypeAction
+  | ScrollAction
+  | PressAction
+  | TypeIntoAction
+  | ClickTargetAction;
 
 export type ActionResult = { ok: boolean; detail: string };
 
