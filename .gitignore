@@ -5,3 +5,5 @@ __pycache__/
 *.onnx
 .env
 .DS_Store
+datasets/
+*.zip

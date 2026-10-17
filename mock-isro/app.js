@@ -41,13 +41,17 @@ function orderedCols(cols, key) {
   for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
   return a;
 }
+const piiOf = (c, v) =>
+  String(v) === "\u2014" ? "" : c.pii || (/^\d{1,3}(\.\d{1,3}){3}$/.test(String(v)) ? "IP" : "");
 const bodyHTML = (cols, rows) =>
-  rows.map((r) => `<tr>${cols.map((c) => `<td${c.pii ? ` data-pii="${c.pii}"` : ""}>${esc(r[c.k])}</td>`).join("")}</tr>`).join("");
+  rows.map((r) => `<tr>${cols.map((c) => {
+    const p = piiOf(c, r[c.k]);
+    return `<td${p ? ` data-pii="${p}"` : ""}>${esc(r[c.k])}</td>`;
+  }).join("")}</tr>`).join("");
 const tableHTML = (id, cols, rows) => {
   const c = orderedCols(cols, id);
   return `<div class="tablewrap"><table data-ui="table" id="${id}"><thead><tr>${c.map((x) => `<th>${esc(x.l)}</th>`).join("")}</tr></thead><tbody>${bodyHTML(c, rows)}</tbody></table></div>`;
 };
-
 const TCOLS = [{ k: "time", l: "Time (UTC)" }, { k: "sat", l: "Satellite" }, { k: "sub", l: "Subsystem" },
   { k: "param", l: "Parameter" }, { k: "value", l: "Value" }, { k: "status", l: "Status" }];
 const OCOLS = [{ k: "name", l: "Name", pii: "NAME" }, { k: "role", l: "Role" }, { k: "station", l: "Station" },
@@ -56,7 +60,7 @@ const ACOLS = [{ k: "time", l: "Time" }, { k: "sev", l: "Severity" }, { k: "mess
   { k: "ack", l: "Acknowledged by", pii: "NAME" }];
 
 /* ---------- state ---------- */
-let view = autologin ? "dash" : "login";
+let view = autologin && params.get("view") !== "login" ? "dash" : "login";
 let tab = params.get("tab") || variant.tabs[0];
 const filter = { q: "", sub: "" };
 
@@ -137,7 +141,7 @@ function panelHTML() {
 function dashHTML() {
   return `<header class="top"><div class="brand">MOCK MISSION CONTROL</div>
     <div class="clock" id="clock">UTC --:--:--</div>
-    <span class="user">User: ${esc(data.currentUser)}</span>
+    <span class="user">User: <b data-pii="NAME">${esc(data.currentUser)}</b></span>
     <button data-ui="button" id="signout">Sign out</button></header>
     <nav class="tabs" role="tablist">${variant.tabs.map((t) =>
       `<button data-ui="tab" role="tab" data-tab="${t}" class="tab ${t === tab ? "active" : ""}">${TAB_LABEL[t]}</button>`).join("")}</nav>
