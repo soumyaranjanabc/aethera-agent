@@ -69,7 +69,8 @@ def main():
     model = NameNet().to(dev)
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=a.epochs)
-    lossf = nn.CrossEntropyLoss(ignore_index=-100)
+    lossf = nn.CrossEntropyLoss(ignore_index=-100, label_smoothing=0.05)
+
     best = -1.0
     print(f"device={dev} train={len(enc)} params={sum(p.numel() for p in model.parameters()):,}")
 

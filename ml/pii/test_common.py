@@ -1,6 +1,6 @@
 from common import K, PUNCT, CAP, UPPER, decode, featurize, fnv1a, shape_of, token_ids, tokenize
 from gen_data import CLEAN_TEST, CLEAN_TRAIN, POOLS, TEST_T, TRAIN_T
-
+from gen_data import ORGS, wpools
 
 def test_fnv1a_known_vectors():
     assert fnv1a("") == 0x811C9DC5 and fnv1a("a") == 0xE40C292C and fnv1a("foobar") == 0xBF9CF968
@@ -31,3 +31,9 @@ def test_name_pools_are_disjoint():
 
 def test_templates_do_not_overlap():
     assert not set(TRAIN_T) & set(TEST_T) and not set(CLEAN_TRAIN) & set(CLEAN_TEST)
+
+def test_word_pools_disjoint_and_orgs_split():
+    p = wpools()
+    assert not (set(p["train"]) & set(p["test"])) and not (set(p["train"]) & set(p["val"])) and not (set(p["val"]) & set(p["test"]))
+    assert len(p["test"]) >= 20
+    assert not set(ORGS["train"]) & set(ORGS["test"])

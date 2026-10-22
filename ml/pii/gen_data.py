@@ -7,6 +7,9 @@ import random
 import re
 import string
 from pathlib import Path
+import functools
+
+from vocab import load_vocab
 
 from common import fnv1a
 from names import FIRST, INTL_FIRST, INTL_LAST, LAST
@@ -48,6 +51,7 @@ CLEAN_TRAIN = [
     "Search telemetry", "Next pass over {PLACE} at {T} UTC",
 ]
 CLEAN_TEST = [
+
     "Altitude {n} km, inclination {x} deg for {SAT}", "The {SAT} payload entered safe mode at {T}",
     "Please review the {ROLE} checklist before {D}", "Vikram Sarabhai Space Centre reported nominal telemetry",
     "Handover to the Ground Station team in {PLACE} is pending", "Export completed: {n} rows written",
@@ -55,6 +59,20 @@ CLEAN_TEST = [
     "Alert history for {SAT} since {D}", "Mission Director's briefing room is booked until {T}",
     "Wheel speed {n} rpm, pointing error {x} deg", "Forgot password? Contact your station administrator",
     "Last pass over {PLACE} lasted {n} seconds", "The Operators tab lists {n} entries",
+]
+TRAIN_T += [
+    "{W} by {N}", "{W}: {N}", "{W} {w} assigned to {N}", "{N} reviewed the {w} {w2}", "{N} {w} the {W} before {T}",
+    "Please send the {w} to {N}", "{W} {w} approved by {N}", "Dear {N}, the {w} is ready",
+]
+CLEAN_TRAIN += [
+    "{W} {w} {w2}", "{W} {w} for {SAT}", "{W} {n} {w}", "{W}, {W2}, and {W3}", "{W} {W2} {W3}",
+    "The {w} {w2} is {w3}", "{W} {w}. {W2} {w2}", "Please {w} the {w2} before {T}",
+    "{W} history for {SAT} since {D}", "{ORG}", "Visit the {ORG} on {D}", "{W} {w} at {ORG}", "{W} {x} {w}",
+]
+TEST_T += ["Per {N}, the {w} {w2} passed", "{W} noted by {N} at {T}"]
+CLEAN_TEST += [
+    "{W} {w} {w2} {w3}", "{W}, {W2} and {W3}", "{W2} {W} {W3} {w}", "Please {w} the {w2} at the {ORG}",
+    "{ORG} reported {w} {w2}", "{n} {w} {W}", "A {w} {w2} is {w3}",
 ]
 
 
@@ -77,11 +95,37 @@ ONS = ["k", "r", "m", "s", "n", "v", "d", "p", "t", "b", "j", "l", "sh", "ch", "
 VOW = ["a", "aa", "e", "i", "o", "u", "ai"]
 END = ["n", "l", "sh", "v", "t", "ya", "ni", "ta", "ri", "ka", "dha", "m", "k"]
 
+ORGS = {  # organisation titles that contain person names: labeled as NOT names (an institution is not a person)
+    "train": ["Satish Dhawan Space Centre", "Homi Bhabha National Institute", "Raman Research Institute",
+              "Jawaharlal Nehru University", "Indira Gandhi Airport", "Netaji Subhas Road", "Tagore Hall"],
+    "val": ["Dr. Ambedkar Hall", "Bhabha Atomic Research Centre", "Sarojini Nagar Market"],
+    "test": ["Vikram Sarabhai Space Centre", "Mahatma Gandhi Road", "Sardar Patel Stadium",
+             "Rajiv Gandhi Bridge", "Subhas Chandra Bose Airport"],
+}
+
+
+def word_split(w):
+    r = fnv1a(w) % 5
+    return "test" if r == 0 else "val" if r == 1 else "train"
+
+
+@functools.lru_cache(maxsize=None)
+def wpools():
+    v = load_vocab()
+    return {s: [w for w in v if word_split(w) == s] for s in ("train", "val", "test")}
 
 class Sampler:
     def __init__(self, rng, split, synth=0.0):
         self.rng, self.synth = rng, synth
         self.first, self.last = POOLS[split]
+        self.words, self.orgs = wpools()[split], ORGS[split]
+        
+    def lit(self, key):
+        r = self.rng
+        if key in ("W", "W2", "W3"): return r.choice(self.words).capitalize()
+        if key in ("w", "w2", "w3"): return r.choice(self.words)
+        if key == "ORG": return r.choice(self.orgs)
+        return lit(key, r)
 
     def _syll(self):
         r = self.rng
@@ -134,7 +178,7 @@ def fill(tpl, rng, sampler):
                 spans.append((len(text), len(text) + len(s)))
                 text += s
             else:
-                text += lit(key, rng)
+                text += sampler.lit(key)
         else:
             text += part
     return text, spans
