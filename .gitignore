@@ -7,3 +7,5 @@ __pycache__/
 .DS_Store
 datasets/
 *.zip
+ml/pii/data/
+ml/pii/out/

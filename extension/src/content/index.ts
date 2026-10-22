@@ -1,6 +1,7 @@
 import type { Msg } from "../shared/types";
 import { executeAction } from "./actionSynthesizer";
 import { collectSnapshot } from "../sanitizer/domSanitizer";
+import "../sanitizer/nameCache";
 
 // Guard against double-injection (e.g., extension reloaded while tab open)
 const FLAG = "__aethera_content_loaded__";
