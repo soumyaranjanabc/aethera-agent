@@ -3,6 +3,7 @@ import argparse
 import json
 import random
 from pathlib import Path
+from common import K, PUNCT, decode, featurize, score
 
 import numpy as np
 import torch
@@ -58,6 +59,7 @@ def main():
     ap.add_argument("--epochs", type=int, default=12)
     ap.add_argument("--bs", type=int, default=64)
     ap.add_argument("--lr", type=float, default=3e-3)
+    ap.add_argument("--drop-word", type=float, default=0.3)
     a = ap.parse_args()
     random.seed(0), np.random.seed(0), torch.manual_seed(0)
     dev = "cuda" if torch.cuda.is_available() else "cpu"
@@ -80,7 +82,7 @@ def main():
         random.shuffle(order)
         tot = 0.0
         for i in range(0, len(order), a.bs):
-            ids, sh, y = collate([enc[j] for j in order[i:i + a.bs]], dev)
+            ids, sh, y = collate([enc[j] for j in order[i:i + a.bs]], dev, a.drop_word)
             loss = lossf(model(ids, sh).reshape(-1, 2), y.reshape(-1))
             opt.zero_grad()
             loss.backward()
@@ -95,6 +97,20 @@ def main():
             best = f1
             torch.save({"state": model.state_dict()}, out / "name_net.pt")
     print("best val f1", round(best, 4), "->", out / "name_net.pt")
+
+def collate(batch, dev, drop_word=0.0):
+    T = max(len(b[1]) for b in batch)
+    ids = torch.zeros(len(batch), T, K, dtype=torch.long)
+    sh = torch.zeros(len(batch), T, dtype=torch.long)
+    y = torch.full((len(batch), T), -100, dtype=torch.long)
+    for i, (a, s, l) in enumerate(batch):
+        n = len(s)
+        a_t, s_t = torch.from_numpy(a).long(), torch.from_numpy(s)
+        if drop_word:
+            keep = (torch.rand(n) >= drop_word) | (s_t == PUNCT)   # keep punctuation: ':' after 'Name' is a real cue
+            a_t[:, 0] = a_t[:, 0] * keep.long()
+        ids[i, :n], sh[i, :n], y[i, :n] = a_t, s_t, torch.from_numpy(l)
+    return ids.to(dev), sh.to(dev), y.to(dev)
 
 
 if __name__ == "__main__":

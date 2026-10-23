@@ -74,6 +74,14 @@ CLEAN_TEST += [
     "{W} {w} {w2} {w3}", "{W}, {W2} and {W3}", "{W2} {W} {W3} {w}", "Please {w} the {w2} at the {ORG}",
     "{ORG} reported {w} {w2}", "{n} {w} {W}", "A {w} {w2} is {w3}",
 ]
+TRAIN_T += [
+    "{w} {N} {w2}", "{W} {w} {N}", "{N} {w} the {w2}", "{w} to {N}", "{w} for {N} at {T}", "{N}'s {w} {w2}",
+    "{W}, {N}", "{N}, {W}", "From {N}: {w} {w2}", "{w} {w2} with {N}", "{N} and {N2} {w} {w2}", "{w} by {N} on {D}",
+]
+CLEAN_TRAIN += [
+    "{w} {W} {w2}", "{W} {w} {w2}", "{w} to {W}", "{w} for {W} at {T}", "{W2}'s {w} {w2}", "{W}, {W2}",
+    "{W2}, {W}", "From {W}: {w} {w2}", "{w} {w2} with {W}", "{W} and {W2} {w} {w2}", "{w} by {W} on {D}",
+]
 
 
 def name_split(n):
@@ -207,7 +215,7 @@ def main():
     out = Path(a.out)
     out.mkdir(exist_ok=True)
     sets = {  # name: (seed, name split, synthetic-name rate, positive templates, clean templates, size)
-        "train": (1, "train", 0.15, TRAIN_T, CLEAN_TRAIN, a.n_train),
+        "train": (1, "train", 0.6, TRAIN_T, CLEAN_TRAIN, a.n_train),
         "val": (2, "val", 0.0, TRAIN_T, CLEAN_TRAIN, a.n_val),
         "test_iid": (3, "test", 0.0, TRAIN_T, CLEAN_TRAIN, a.n_test),
         "test_ood": (4, "test", 0.0, TEST_T, CLEAN_TEST, a.n_test),
